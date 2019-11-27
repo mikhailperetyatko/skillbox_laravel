@@ -10,54 +10,36 @@ class PostsTest extends TestCase
 {
     use RefreshDatabase;
     use WithFaker;
-    /**
-     * A basic feature test example.
-     *
-     * @return void
-     */
+    use TestsHttpTrait;
+    
     public function testAUserCanCreatePostWithoutTags()
     {
         //$this->withoutExceptionHandling();
-        
-        $this->actingAs($user = factory(\App\User::class)->create());
-        
-        $this->post('/posts', $attr = factory(\App\Post::class)->raw(['published' => 1, 'owner_id' => $user->id]));
-        
-        $this->assertDatabaseHas('posts', $attr);
+        $this->withUser()->withFacrotyRaw(\App\Post::class, ['published' => "1"])->withPostRequest('/posts');        
+        $this->assertDatabaseHas('posts', $this->testingModel);
     }
     
     public function testAUserCanCreatePostWithTags()
     {
-        //$this->withoutExceptionHandling();
-        
-        $this->actingAs($user = factory(\App\User::class)->create());
-        $tag_attr = factory(\App\Tag::class)->raw();
-        
-        $this->post('/posts', 
-            array_merge(
-                $post_attr = factory(\App\Post::class)->raw([
-                    'published' => 1, 
-                    'owner_id' => $user->id,
-                ]),
-                ['tags' => $tag_attr['name']],
-            )
-        );
-        
-        $this->assertDatabaseHas('posts', $post_attr)->assertDatabaseHas('tags', $tag_attr);
+        $tag = factory(\App\Tag::class)->raw();
+        $this->withUser()->withFacrotyRaw(\App\Post::class, ['published' => '1'])->withPostRequest('/posts', ['tags' => $tag['name']]);
+        $this->assertDatabaseHas('posts', $this->testingModel);
+        $this->assertDatabaseHas('tags', $tag);
     }
     
     public function testAUserCanUpdatePost()
     {
         //$this->withoutExceptionHandling();
-        $this->actingAs($user = factory(\App\User::class)->create());
-        
-        $post = factory(\App\Post::class)->create(['published' => 1, 'owner_id' => $user->id]);
-        
-        $attr = $post->toArray();
-        $attr['title'] .= '_new';
-        
-        $this->patch('/posts/' . $post->slug, $attr);
-
-        $this->assertDatabaseHas('posts', $attr);
+        $this->withUser()->withFacrotyCreate(\App\Post::class, ['published' => '1', 'owner_id' => $this->user->id])->withPatchRequest('/posts', ['title' => 'new111111']);
+        $this->assertDatabaseHas('posts', $this->testingModel);
     }
+    
+    public function testAUserCanDeletePost()
+    {
+        //$this->withoutExceptionHandling();
+        $this->withUser()->withFacrotyCreate(\App\Post::class, ['published' => '1', 'owner_id' => $this->user->id])->withDeleteRequest('/posts');
+        $this->assertDatabaseMissing('posts', $this->testingModel);
+    }
+    
+    
 }
